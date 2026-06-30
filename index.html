@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple CV Generator with Developer Credit</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #e9ecef;
+      padding: 20px;
+      direction: rtl;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* صندوق إدخال البيانات */
+    .form-container {
+      background: white;
+      padding: 25px;
+      width: 100%;
+      max-width: 794px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      box-sizing: border-box;
+    }
+    
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    input, textarea { width: 100%; margin: 5px 0 15px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+    
+    button { 
+      width: 100%; padding: 15px; background: #000; color: white; 
+      border: none; cursor: pointer; font-size: 18px; border-radius: 4px; font-weight: bold; margin-top: 15px;
+    }
+    button:hover { background: #333; }
+
+    /* قالب ورقة A4 للمعاينة والطباعة */
+    .a4-page-wrapper {
+      width: 794px;
+      min-height: 1123px;
+      background: white;
+      padding: 50px;
+      box-sizing: border-box;
+      box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+      direction: rtl;
+      text-align: right;
+      position: relative; /* لتثبيت التوقيع في الأسفل */
+    }
+
+    /* هيدر السيرة الذاتية (يحتوي على الصورة والنص متجاورين) */
+    .cv-header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #000;
+      padding-bottom: 20px;
+      margin-bottom: 25px;
+    }
+    
+    .cv-text-info h1 { margin: 0 0 10px 0; font-size: 32px; color: #000; }
+    .cv-text-info p { margin: 5px 0; font-size: 16px; color: #444; }
+    
+    /* تنسيق الصورة الشخصية لتكون مربعة */
+    .cv-image-container img {
+      width: 110px;
+      height: 110px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 3px solid #000;
+      display: none;
+    }
+
+    /* أقسام السيرة الذاتية */
+    .cv-section { margin-bottom: 25px; }
+    .cv-section h3 { 
+      border-right: 5px solid #000; 
+      padding-right: 15px; 
+      margin: 0 0 10px 0; 
+      color: #000; 
+      font-size: 20px; 
+    }
+    .cv-section p { margin: 5px 0; font-size: 16px; white-space: pre-line; line-height: 1.6; }
+
+    /* توقيع المطور في أسفل الموقع */
+    .site-footer {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* توقيع المطور داخل ملف الـ PDF */
+    .pdf-footer {
+      position: absolute;
+      bottom: 30px;
+      left: 50px;
+      right: 50px;
+      text-align: center;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+      font-size: 12px;
+      color: #888;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="form-container">
+  <h2>إنشاء السيرة الذاتية بالصورة المربعة</h2>
+  
+  <label>الصورة الشخصية:</label>
+  <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)">
+
+  <label>الاسم الكامل:</label>
+  <input type="text" id="name" placeholder="أدخل الاسم الكامل" oninput="updatePreview()">
+
+  <label>البريد الإلكتروني:</label>
+  <input type="email" id="email" placeholder="name@example.com" oninput="updatePreview()">
+
+  <label>رقم الهاتف:</label>
+  <input type="text" id="phone" placeholder="07xxxxxxxx" oninput="updatePreview()">
+
+  <label>المهارات:</label>
+  <textarea id="skills" rows="3" placeholder="أدخل المهارات هنا..." oninput="updatePreview()"></textarea>
+
+  <label>التعليم:</label>
+  <textarea id="education" rows="3" placeholder="أدخل المؤهلات التعليمية..." oninput="updatePreview()"></textarea>
+
+  <label>الخبرات المهنية:</label>
+  <textarea id="experience" rows="3" placeholder="أدخل الخبرات المهنية..." oninput="updatePreview()"></textarea>
+
+  <button onclick="downloadPDF()">تحميل السيرة الذاتية PDF 📥</button>
+</div>
+
+<div class="site-footer">
+  تم التطوير بواسطة <strong>ثامر الحصاد</strong> &copy; 2026
+</div>
+
+<br>
+
+<div id="cv-template" class="a4-page-wrapper">
+  
+  <div class="cv-header-container">
+    <div class="cv-text-info">
+      <h1 id="pdf-name">الاسم سيظهر هنا</h1>
+      <p><strong>البريد الإلكتروني:</strong> <span id="pdf-email"></span></p>
+      <p><strong>رقم الهاتف:</strong> <span id="pdf-phone"></span></p>
+    </div>
+    <div class="cv-image-container">
+      <img id="pdf-img" src="" alt="الصورة الشخصية">
+    </div>
+  </div>
+  
+  <div class="cv-section">
+    <h3>المهارات</h3>
+    <p id="pdf-skills"></p>
+  </div>
+
+  <div class="cv-section">
+    <h3>التعليم</h3>
+    <p id="pdf-education"></p>
+  </div>
+
+  <div class="cv-section">
+    <h3>الخبرات المهنية</h3>
+    <p id="pdf-experience"></p>
+  </div>
+
+  <div class="pdf-footer">
+    تم إنشاؤه عبر منصة التطوير الخاصة بـ ثامر الحصاد
+  </div>
+
+</div>
+
+<script>
+// دالة معالجة وعرض الصورة الشخصية
+function previewImage(event) {
+  const reader = new FileReader();
+  reader.onload = function() {
+    const output = document.getElementById('pdf-img');
+    output.src = reader.result;
+    output.style.display = 'block';
+  };
+  if(event.target.files[0]) {
+    reader.readAsDataURL(event.target.files[0]);
+  }
+}
+
+// دالة تحديث حقول المعاينة الحية
+function updatePreview() {
+  document.getElementById("pdf-name").innerText = document.getElementById("name").value || "الاسم سيظهر هنا";
+  document.getElementById("pdf-email").innerText = document.getElementById("email").value;
+  document.getElementById("pdf-phone").innerText = document.getElementById("phone").value;
+  document.getElementById("pdf-skills").innerText = document.getElementById("skills").value;
+  document.getElementById("pdf-education").innerText = document.getElementById("education").value;
+  document.getElementById("pdf-experience").innerText = document.getElementById("experience").value;
+}
+
+// دالة تصدير الملف كـ PDF
+function downloadPDF() {
+  const nameInput = document.getElementById("name").value;
+  if (!nameInput) {
+    alert("يرجى إدخال الاسم على الأقل قبل تصدير الملف.");
+    return;
+  }
+
+  const element = document.getElementById("cv-template");
+
+  const opt = {
+    margin:       0,
+    filename:     'My_CV.pdf',
+    image:        { type: 'jpeg', quality: 1 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save();
+}
+</script>
+
+</body>
+</html>
